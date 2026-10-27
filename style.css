@@ -1,0 +1,54 @@
+/* Flowpoint Consulting: one studio sheet. Layout: a narrow reading column; the hero is set type over a field of drawn flow lines. */
+:root{
+  --paper:#f6f3ee; --ink:#18202b; --muted:#5d6672; --rule:#d9d3c8; --card:#fffdf9;
+  --ember:#d9562b; --ember-ink:#a63c18; --tide:#1f5f73;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--paper:#11161d;--ink:#ece7de;--muted:#9aa3ad;--rule:#2a323c;--card:#161d26;--ember:#ff7a45;--ember-ink:#ff9a6e;--tide:#6fb7cc;color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 var(--body)}
+a{color:var(--ember-ink);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:2px}
+.wrap{max-width:62rem;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+header.top{display:flex;justify-content:space-between;align-items:center;padding-block:22px;gap:16px}
+.mark{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.mark svg{flex:none}
+nav{display:flex;gap:18px}
+nav a{color:var(--muted);text-decoration:none;font-size:15px}
+@media (max-width:420px){nav{gap:14px}nav a{font-size:14px}nav a.opt{display:none}}
+nav a:hover{color:var(--ink)}
+.hero{position:relative;padding-block:56px 64px;overflow:hidden}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55;pointer-events:none}
+.hero .inner{position:relative}
+.kicker{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--tide);font-weight:600;margin:0 0 14px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(40px,7vw,76px);line-height:.98;letter-spacing:-.03em;margin:0;max-width:14ch;text-wrap:balance}
+h1 em{font-style:normal;color:var(--ember)}
+.lead{font-size:clamp(18px,2.2vw,21px);color:var(--muted);max-width:38rem;margin:22px 0 0}
+section{padding-block:44px;border-top:1px solid var(--rule)}
+h2{font-family:var(--display);font-size:28px;letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 26px;max-width:40rem}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:18px}
+.game{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:22px;display:grid;gap:8px;align-content:start}
+.game .tag{justify-self:start;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--ember) 14%,transparent);color:var(--ember-ink)}
+.game .tag.dev{background:color-mix(in srgb,var(--tide) 16%,transparent);color:var(--tide)}
+.game h3{font-family:var(--display);font-size:24px;margin:2px 0 0;letter-spacing:-.01em}
+.game p{margin:0;color:var(--muted)}
+.game .facts{font-size:14px;color:var(--muted);border-top:1px solid var(--rule);padding-top:10px;margin-top:6px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:28px}
+.cols h3{font-size:16px;margin:0 0 4px}
+.cols p{margin:0;color:var(--muted)}
+footer{border-top:1px solid var(--rule);padding-block:28px 40px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+/* policy page */
+.doc{max-width:42rem;padding-block:20px 48px}
+.doc h1{font-size:clamp(34px,5vw,48px);max-width:none}
+.doc h2{font-size:21px;margin:30px 0 4px}
+.doc .meta{color:var(--muted);margin:10px 0 0}
+.doc p,.doc li{color:var(--ink)}
+.doc table{border-collapse:collapse;width:100%;font-size:15px;margin-top:8px}
+.doc th,.doc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.doc th{font-weight:600}
+@media (prefers-reduced-motion:reduce){.hero canvas{display:none}}

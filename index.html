@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flowpoint Consulting</title>
+<meta name="description" content="Flowpoint Consulting FZ-LLC: corporate development advisory and the publisher of the mobile games Ember Line and Bangalore Office Run.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318202b'/%3E%3Cpath d='M6 20c6-9 12 3 20-6' stroke='%23d9562b' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='14' r='2.5' fill='%23d9562b'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="mark" href="./" aria-label="Flowpoint Consulting home">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M6 20c6-9 12 3 20-6" stroke="#d9562b" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="26" cy="14" r="2.5" fill="#d9562b"/></svg>
+      Flowpoint
+    </a>
+    <nav><a href="#games">Games</a><a class="opt" href="#company">Company</a><a href="privacy.html">Privacy</a></nav>
+  </header>
+</div>
+
+<div class="hero">
+  <canvas id="flow" aria-hidden="true"></canvas>
+  <div class="wrap inner">
+    <p class="kicker">Flowpoint Consulting FZ-LLC</p>
+    <h1>Corporate development, and <em>games</em> worth replaying.</h1>
+    <p class="lead">A small company registered in the Ras Al Khaimah Economic Zone. We advise technology companies on corporate development, and we make short, replayable mobile games.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <section id="games">
+    <h2>Games</h2>
+    <p class="sub">Free to play, no accounts and no tracking. Both are in development; Android first.</p>
+    <div class="games">
+      <article class="game">
+        <span class="tag">Coming to Android</span>
+        <h3>Ember Line</h3>
+        <p>Lead Ember Company through a haunted mountain pass. Grow your squad through gates, free caged heroes, and dodge the slams of giants that burst out of their crypts.</p>
+        <p class="facts">Fantasy squad runner · 10-level first chapter · plays offline</p>
+      </article>
+      <article class="game">
+        <span class="tag dev">In development</span>
+        <h3>Bangalore Office Run</h3>
+        <p>Standup is at 9:30. Spin your departure time, pick a scooter, car or auto, and fight potholes, signals and the Silk Board junction to get to work with your salary intact.</p>
+        <p class="facts">Satirical commute game · about 3 minutes a run</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="company">
+    <h2>Company</h2>
+    <p class="sub">Flowpoint Consulting FZ-LLC is licensed by the Ras Al Khaimah Economic Zone (RAKEZ), United Arab Emirates.</p>
+    <div class="cols">
+      <div><h3>Corporate development</h3><p>Strategy, M&amp;A and post-merger integration support for technology companies.</p></div>
+      <div><h3>Games</h3><p>Small, polished mobile games, published under the Flowpoint name.</p></div>
+      <div><h3>Contact</h3><p><a href="mailto:support@flowpointconsulting.com">support@flowpointconsulting.com</a><br>Player questions, press and business enquiries.</p></div>
+    </div>
+  </section>
+</div>
+
+<footer><div class="wrap"><span>© 2026 Flowpoint Consulting FZ-LLC · RAKEZ, United Arab Emirates</span><span><a href="privacy.html">Privacy policy</a></span></div></footer>
+
+<script>
+// Hero background: slow drifting flow lines, the company's mark at scale. Static frame when motion is reduced.
+(()=>{const c=document.getElementById('flow');if(!c)return;const g=c.getContext('2d');let w,h,t=0;const dpr=Math.min(2,devicePixelRatio||1);
+  const dark=matchMedia('(prefers-color-scheme: dark)').matches,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function size(){w=c.clientWidth;h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;g.setTransform(dpr,0,0,dpr,0,0);}
+  function draw(){g.clearRect(0,0,w,h);for(let i=0;i<14;i++){g.beginPath();const y0=h*(.15+i*.055),amp=18+i*2.2,ph=i*.55+t;
+      for(let x=0;x<=w;x+=8){const y=y0+Math.sin(x/170+ph)*amp+Math.sin(x/61+ph*1.7)*4;x?g.lineTo(x,y):g.moveTo(x,y);}
+      g.strokeStyle=i===9?(dark?'rgba(255,122,69,.4)':'rgba(217,86,43,.38)'):(dark?'rgba(111,183,204,.18)':'rgba(31,95,115,.16)');g.lineWidth=i===9?2:1;g.stroke();}
+    if(!reduce){t+=.004;requestAnimationFrame(draw);}}
+  size();addEventListener('resize',size);draw();})();
+</script>
+</body>
+</html>
