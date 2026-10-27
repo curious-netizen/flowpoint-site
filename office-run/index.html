@@ -300,6 +300,7 @@ a.btn, a.toggle { text-decoration: none; display: inline-flex; align-items: cent
       <button class="toggle" id="t-sound" aria-label="Sound">Sound: <b>On</b></button>
       <button class="toggle" id="b-credits">Credits</button>
       <a class="toggle" id="b-feedback0" href="mailto:admin@flowpointconsulting.com" target="_blank" rel="noopener">Feedback</a>
+      <a class="toggle" id="b-hdlink" hidden></a>
     </div>
   </div>
 </section>
@@ -460,9 +461,13 @@ const moveTo = (a, b, s) => (Math.abs(b - a) <= s ? b : a + Math.sign(b - a) * s
 const fmtINR = (n) => Math.abs(Math.round(n)).toLocaleString('en-IN');
 const rupees = (n) => (n < 0 ? '−₹' : '₹') + fmtINR(n);
 
+// HD_BUILD: the heavier website version (about three times the model detail, sharper textures and shadows).
+// build.sh hd flips it; that version keeps its own settings and scores.
+const HD_BUILD = false;
+const STORE_P = HD_BUILD ? 'borhd.' : 'bor.';
 const store = {
-  get(k, d) { try { const v = localStorage.getItem('bor.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('bor.' + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
+  get(k, d) { try { const v = localStorage.getItem(STORE_P + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(STORE_P + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
 };
 const settings = { quality: store.get('quality', 'high'), muted: store.get('muted', false) };
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -485,7 +490,7 @@ const hemi = new THREE.HemisphereLight(0xdfe8f0, 0x6a5c4a, 0.6);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffe0b0, 2.6);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1536, 1536);
+sun.shadow.mapSize.set(HD_BUILD ? 3072 : 1536, HD_BUILD ? 3072 : 1536);
 sun.shadow.camera.layers.enable(1);   // shadow-only stand-ins for the high-detail models
 {
   const sc = sun.shadow.camera;
@@ -504,7 +509,7 @@ function resize() {
 }
 function applyQuality() {
   const hi = settings.quality === 'high';
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, hi ? 1.5 : 1));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, hi ? (HD_BUILD ? 2 : 1.5) : 1));
   renderer.shadowMap.enabled = hi;
   sun.castShadow = hi;
   scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
@@ -3978,14 +3983,17 @@ function lodPass(list, cz) {
 }
 // Watchdog: if you've been stuck in the same place for a while, clear whatever is jammed ahead
 // (things far enough from the camera simply leave; people standing in the road step off it).
-let stallT = 0, stallN = 0;
+let stallT = 0, stallN = 0, stallZ = 0;
 function stallWatch(dt) {
-  if (!player.active) { stallT = 0; stallN = 0; return; }
-  // waiting at a red (or for the queue to start moving after green) is normal, so that time doesn't count
+  if (!player.active) { stallT = 0; stallN = 0; stallZ = player.z; return; }
+  // progress, not speed: creeping back and forth for ages counts as stuck too
+  if (Math.abs(player.z - stallZ) > 6) { stallZ = player.z; stallT = 0; stallN = 0; return; }
+  // waiting at a red (or for the queue to start moving after green) is normal, so that time doesn't count;
+  // stuck inside the junction box isn't waiting
   const jw = junctions.find((j) => player.z - j.stopZ > -2 && player.z - j.stopZ < 80);
-  const waiting = jw && (jw.phase !== 'green' || jw.t < 10);
+  const waiting = jw && (jw.phase !== 'green' || jw.t < 10) && player.z - player.len / 2 > jw.stopZ - 0.5;
   // ...but standing still through a green while the queue should be moving does count (double, since greens are short)
-  if (player.v < 0.6) { if (!waiting) stallT += dt; else if (jw.phase === 'green' && jw.t > 3) stallT += dt * 2; } else { stallT = 0; stallN = 0; }
+  if (!waiting) stallT += dt; else if (jw.phase === 'green' && jw.t > 3) stallT += dt * 2;
   if (stallT < 22) return;
   stallT = 12; stallN++;
   // first try: only things well away from the camera leave; if you're still stuck 10 s later, anything jammed
@@ -5587,7 +5595,7 @@ function togglePause(force) {
 }
 
 // ---------- tester feedback (by email, with device and run details filled in) ----------
-const GAME_VERSION = 'v9.16', FEEDBACK_TO = 'admin@flowpointconsulting.com';
+const GAME_VERSION = 'v9.17' + (HD_BUILD ? ' HD' : ''), FEEDBACK_TO = 'admin@flowpointconsulting.com';
 const FPSREC = { s: 0, t: 0, min: 999 };   // frame rate over the current run (07-main fills it in)
 let lastRunInfo = null;
 function feedbackHref() {
@@ -5901,6 +5909,12 @@ function holdButton(el, on, off) {
   el.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 function wire() {
+  // on the website, a link between the standard and the HD version
+  if (/(^|\.)flowpointconsulting\.com$/.test(location.hostname)) {
+    const a = $('#b-hdlink');
+    a.innerHTML = HD_BUILD ? 'Standard version' : 'HD version: <b>fast devices</b>';
+    a.href = HD_BUILD ? '../' : 'hd/'; a.hidden = false;
+  }
   $('#b-spin').addEventListener('click', spin);
   $('#b-respin').addEventListener('click', () => { resetSetup(); spin(); });
   $('#b-start').addEventListener('click', () => { if (run.ride) startRun(); });
