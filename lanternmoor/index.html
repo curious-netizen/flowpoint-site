@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#16112a">
+<style>
+@font-face{font-family:"Lilita One";src:url(fonts/lilita-one.woff2) format("woff2");font-weight:400;font-display:block}
+@font-face{font-family:"Nunito";src:url(fonts/nunito-sans-latin-400-normal.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Nunito";src:url(fonts/nunito-sans-latin-800-normal.woff2) format("woff2");font-weight:800 900;font-display:swap}
+[hidden]{display:none!important}body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+</style>
+<title>Heroes of Lanternmoor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: full-bleed WebGL stage; HUD chips pinned to safe-area corners; lobby = hero lineup on stage with a card rail at the bottom. Single dark look by choice (dusk graveyard). */
+:root{
+  --night:#16112a; --dusk:#2a2048; --panel:rgba(22,17,42,.82); --line:rgba(255,214,140,.22);
+  --lamp:#ffb43d; --lamp-hi:#ffd77a; --bone:#f3ead8; --mute:#b7a9cf; --danger:#ff5a4a; --heal:#8fe39a; --ice:#8fd0ff;
+  --display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--bone);font-family:var(--body);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
+#stage{position:fixed;inset:0}
+#view{width:100%;height:100%;display:block}
+button{font-family:var(--body);font-weight:900;cursor:pointer;color:inherit}
+button:focus-visible{outline:3px solid var(--lamp-hi);outline-offset:2px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:900;backdrop-filter:blur(6px);display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.coin{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff2b0,var(--lamp) 55%,#b8741a);box-shadow:0 0 0 1px #7a4a10 inset;flex:none}
+.top{position:fixed;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;justify-content:space-between;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+.top>*{pointer-events:auto}
+.top .row{flex-wrap:nowrap;gap:6px}.top .chip,.top .ghost{font-size:13px;padding:6px 10px}
+.ghost{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px}
+/* ---- run HUD ---- */
+#prog{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--lamp),var(--lamp-hi));width:0;top:env(safe-area-inset-top,0px)}
+#bossbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(56px + env(safe-area-inset-top,0px));width:min(420px,calc(100% - 32px));text-align:center}
+#bossname{font-family:var(--display);font-size:18px;letter-spacing:.02em;text-shadow:0 2px 0 #000a}
+.bar{height:12px;border-radius:7px;background:#0008;border:1px solid #ffffff30;overflow:hidden;margin-top:4px}
+#bossfill{height:100%;width:100%;background:linear-gradient(90deg,#ff7a3a,var(--danger));transition:width .15s}
+#bossfill.sealed{background:repeating-linear-gradient(135deg,#9a90b0 0 8px,#7a7090 8px 16px)}
+#count{position:fixed;transform:translate(-50%,-100%);pointer-events:none;background:var(--panel);border:2px solid var(--lamp);border-radius:12px;padding:2px 10px;font-family:var(--display);font-size:22px;color:var(--bone);font-variant-numeric:tabular-nums}
+#count::after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--lamp);border-bottom:0}
+#pops{position:fixed;left:0;right:0;top:34%;display:grid;justify-items:center;pointer-events:none}
+.pop{grid-area:1/1;font-family:var(--display);font-size:clamp(34px,9vw,56px);-webkit-text-stroke:2px #1a0f2a;paint-order:stroke;animation:pop 1.1s ease-out forwards}
+.pop.good{color:var(--lamp-hi)}.pop.bad{color:var(--danger)}
+.abcall{position:fixed;transform:translate(-50%,-100%);font-family:var(--display);font-size:22px;white-space:nowrap;-webkit-text-stroke:2px #1a0f2a;paint-order:stroke;pointer-events:none;text-shadow:0 0 12px currentColor}
+@keyframes pop{0%{transform:scale(.4);opacity:0}15%{transform:scale(1.15);opacity:1}30%{transform:scale(1)}100%{transform:translateY(-60px);opacity:0}}
+#dodge{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--display);font-size:24px;color:var(--bone);text-shadow:0 2px 0 #000;display:flex;gap:10px;align-items:center;animation:nudge 1s ease-in-out infinite;pointer-events:none}
+@keyframes nudge{50%{transform:translateX(calc(-50% + 14px))}}
+#bark{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));max-width:min(360px,calc(100% - 32px));display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 14px 8px 8px;pointer-events:none}
+#bark.in{animation:barkin .3s ease-out}
+@keyframes barkin{from{transform:translateY(20px);opacity:0}}
+.face{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;font-family:var(--display);font-size:20px;color:#1a0f2a}
+[data-who=vela]{--hc:var(--lamp)}[data-who=rook]{--hc:#ff8a6a}[data-who=juno]{--hc:var(--heal)}[data-who=pip]{--hc:var(--ice)}[data-who=moss]{--hc:#d7a8ff}[data-who=all]{--hc:var(--mute)}
+.face{background:var(--hc,var(--lamp))}
+#barkName{font-family:var(--display);font-size:14px;color:var(--lamp-hi);display:block}
+#barkText{font-weight:800;font-size:14px;line-height:1.25}
+/* ---- overlays ---- */
+.veil{position:fixed;inset:0;display:grid;place-items:center;background:rgba(12,8,24,.55);backdrop-filter:blur(3px);padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{display:grid;gap:14px;justify-items:center;text-align:center;width:min(560px,100%)}
+h2{font-family:var(--display);font-weight:400;font-size:clamp(28px,7vw,40px);margin:0;line-height:1.05;text-wrap:balance;text-shadow:0 3px 0 #0008}
+.kick{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:900}
+#pickCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+@media (max-width:520px){#pickCards{grid-template-columns:1fr}}
+.skill{background:linear-gradient(180deg,#3a2c60,#241a40);border:2px solid var(--line);border-radius:18px;padding:14px 12px;display:grid;gap:6px;text-align:left;transition:transform .12s,border-color .12s}
+.skill:hover,.skill:focus-visible{transform:translateY(-3px);border-color:var(--lamp)}
+.skill .who{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--hc,var(--lamp))}
+.skill .who em{font-style:normal;color:var(--danger)}
+.skill b{font-family:var(--display);font-weight:400;font-size:22px}
+.skill small{font-weight:700;font-size:13px;color:var(--mute);line-height:1.3}
+.big{font-family:var(--display);font-weight:400;font-size:24px;border:0;border-radius:16px;padding:12px 30px;background:linear-gradient(180deg,var(--lamp-hi),var(--lamp));color:#2a1405;box-shadow:0 5px 0 #a8641a,0 10px 24px #0006}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 #a8641a}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.plain{background:transparent;border:1px solid var(--line);border-radius:14px;padding:10px 18px;font-size:15px}
+#resStars{display:flex;gap:8px}
+#resStars i{width:38px;height:38px;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#ffffff22}
+#resStars i.on{background:linear-gradient(180deg,var(--lamp-hi),var(--lamp));animation:star .4s ease-out}
+@keyframes star{0%{transform:scale(1.8);filter:brightness(2)}100%{transform:scale(1)}}
+#resSurvive{display:grid;gap:4px;width:min(340px,100%);font-size:12px;font-weight:900;color:var(--mute);text-align:left}
+#resSurvive .bar{height:12px}#resSurviveBar{height:100%;width:0;background:linear-gradient(90deg,var(--heal),#c8ffb0);transition:width 1s ease-out}
+#resSurvive b{color:var(--bone);font-size:13px}
+#bossbar .bar{position:relative}.ragemark{position:absolute;left:40%;top:-3px;bottom:-3px;width:3px;background:var(--danger);box-shadow:0 0 6px var(--danger)}
+#bossbar.rage #bossname{color:var(--danger);animation:ragepulse .6s ease-in-out infinite alternate}#bossbar.rage #bossfill{background:linear-gradient(90deg,#ff2a1a,#ff8a3a)}
+@keyframes ragepulse{to{text-shadow:0 0 14px var(--danger)}}
+#bossbar.hit .bar{animation:barhit .25s ease-out}@keyframes barhit{0%{transform:translateX(-4px);filter:brightness(2)}50%{transform:translateX(4px)}100%{transform:none}}
+#titlecard{position:fixed;left:0;right:0;top:30%;display:grid;justify-items:center;gap:2px;pointer-events:none;text-align:center}
+#titlecard.in{animation:tc 2.3s ease-out forwards}
+@keyframes tc{0%{opacity:0;transform:scale(1.6)}12%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
+#tcName{font-family:var(--display);font-weight:400;font-size:clamp(40px,12vw,64px);color:var(--bone);-webkit-text-stroke:3px #1a0f2a;paint-order:stroke;text-shadow:0 0 24px #ff5a2a}
+#tcSub{font-size:13px;letter-spacing:.2em;text-transform:uppercase;font-weight:900;color:var(--lamp-hi)}
+#whiteflash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flycoin{position:fixed;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff2b0,var(--lamp) 55%,#b8741a);box-shadow:0 0 8px #ffb43d;pointer-events:none;z-index:4}
+.chip.bump{animation:chipbump .3s ease-out}@keyframes chipbump{0%{transform:scale(1.25);filter:brightness(1.6)}100%{transform:none}}
+#resStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:min(340px,100%)}
+#resStats span{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;font-size:13px;color:var(--mute)}
+#resStats b{display:block;font-family:var(--display);font-weight:400;font-size:22px;color:var(--bone)}
+/* ---- lobby ---- */
+#lobbyUI .title{position:fixed;left:0;right:0;top:calc(56px + env(safe-area-inset-top,0px));text-align:center;pointer-events:none}
+#lobbyUI h1{font-family:var(--display);font-weight:400;font-size:clamp(40px,11vw,72px);margin:0;line-height:.95;color:var(--lamp-hi);text-shadow:0 4px 0 #6a3410,0 10px 30px #000a;letter-spacing:.01em}
+h1 .of{display:block;font-size:.42em;letter-spacing:.12em;text-transform:uppercase;color:var(--bone);text-shadow:0 2px 0 #0008;margin-bottom:.1em}
+#lobbyUI .sub{font-weight:800;color:var(--mute);font-size:14px}
+.dock{position:fixed;left:0;right:0;bottom:0;display:grid;gap:12px;justify-items:center;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:linear-gradient(180deg,transparent,rgba(12,8,24,.85) 30%)}
+#heroCards{display:flex;gap:8px;overflow-x:auto;max-width:100%;padding:18px 2px 4px;scrollbar-width:none}
+.hero{flex:0 0 172px;background:linear-gradient(180deg,#33275a,#221a3e);border:1px solid var(--line);border-radius:16px;padding:10px;display:grid;gap:3px;align-content:start}
+.hero .role{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--hc)}
+.hero b{font-family:var(--display);font-weight:400;font-size:18px}
+.hero .lv{font-size:12px;font-weight:900;color:var(--lamp-hi)}
+.hero small{font-size:12px;color:var(--mute);line-height:1.3;min-height:48px}
+.hero .ab{font-family:var(--display);font-size:14px;color:var(--hc);margin-top:2px}
+.hero.picked{border-color:var(--hc);box-shadow:0 0 0 1px var(--hc) inset}
+.hero .pickbtn{background:transparent;border:1px solid var(--line);color:var(--bone)}
+.hero.picked .pickbtn{background:var(--hc);color:#1a0f2a;border-color:var(--hc)}
+.hero button{margin-top:4px;border:0;border-radius:10px;padding:7px;background:var(--lamp);color:#2a1405;font-size:13px}
+.hero button:disabled{background:#ffffff1a;color:var(--mute);cursor:default}
+.hero.locked{opacity:.6}.hero.locked .lv{color:var(--mute)}
+.lvlpick{display:flex;align-items:center;gap:10px;font-weight:900}
+.lvlpick button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel);font-size:18px;line-height:1}
+.lvlpick button:disabled{opacity:.35}
+.lvlpick span{font-family:var(--display);font-size:20px;min-width:96px;text-align:center}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 70%,#4a2a50,var(--night) 70%);z-index:5;text-align:center;padding:24px}
+#loading h1{font-family:var(--display);font-weight:400;font-size:clamp(44px,12vw,80px);margin:0;color:var(--lamp-hi);text-shadow:0 4px 0 #6a3410}
+#loadText{color:var(--mute);font-weight:800;margin-top:8px}
+.lbar{width:min(280px,70vw);height:8px;border-radius:5px;background:#ffffff18;margin:14px auto 0;overflow:hidden}
+#loadBar{height:100%;width:0;background:var(--lamp);transition:width .2s}
+#fps{position:fixed;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));font-size:10px;color:#ffffff55;pointer-events:none}
+#count.hit{animation:hit .35s ease-out}#count.up{animation:up .35s ease-out}
+@keyframes hit{0%{transform:translate(-50%,-100%) scale(1.25);border-color:var(--danger);color:var(--danger)}25%{transform:translate(calc(-50% - 5px),-100%)}50%{transform:translate(calc(-50% + 5px),-100%)}100%{transform:translate(-50%,-100%)}}
+@keyframes up{0%{transform:translate(-50%,-100%) scale(1.2);border-color:var(--heal);color:var(--heal)}100%{transform:translate(-50%,-100%) scale(1)}}
+#hurt{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 60%,transparent 45%,rgba(255,40,30,.75) 100%)}
+#coach{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);width:min(340px,calc(100% - 32px));display:grid;gap:10px;justify-items:center;text-align:center;pointer-events:none}
+#coachText{background:var(--panel);border:2px solid var(--lamp);border-radius:16px;padding:10px 16px;font-weight:900;font-size:17px;line-height:1.3;box-shadow:0 8px 24px #0008}
+.hand{width:120px;height:44px;position:relative;display:none}
+#coach[data-dir=left] .hand,#coach[data-dir=right] .hand{display:block}
+.hand::before{content:"";position:absolute;left:8px;right:8px;top:20px;height:4px;border-radius:2px;background:#ffffff40}
+.hand i{position:absolute;top:8px;left:42px;width:28px;height:28px;border-radius:50%;background:var(--bone);box-shadow:0 0 0 6px #ffffff30,0 4px 10px #0008;animation:swipeR 1s ease-in-out infinite}
+#coach[data-dir=left] .hand i{animation-name:swipeL}
+@keyframes swipeR{0%{transform:translateX(-30px);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateX(40px);opacity:0}}
+@keyframes swipeL{0%{transform:translateX(30px);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateX(-40px);opacity:0}}
+#map{position:fixed;inset:0;display:grid;grid-template-rows:auto auto 1fr auto;background:radial-gradient(ellipse at 50% 40%,#2c2150,var(--night) 75%);z-index:3;
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));gap:8px}
+.maphead{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:center}.maphead h2{font-size:28px}
+#mapRewards{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#mapRewards span{font-size:11px;font-weight:900;padding:4px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+#mapRewards span.got{background:var(--lamp);color:#2a1405;border-color:var(--lamp)}
+.mapscroll{overflow-y:auto;min-height:0;scrollbar-width:none}
+#mapPath{position:relative;width:min(420px,100%);margin:0 auto}
+.trail{position:absolute;inset:0;width:100%;height:100%}.trail path{fill:none;stroke:#ffd77a55;stroke-width:6;stroke-dasharray:2 12;stroke-linecap:round}
+.node{position:absolute;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;border:3px solid var(--lamp);background:radial-gradient(circle at 40% 35%,#4a3a7a,#241a40);display:grid;place-items:center;padding:0}
+.node b{font-family:var(--display);font-weight:400;font-size:24px;color:var(--bone)}
+.node.giant{width:70px;height:70px;border-color:var(--danger);box-shadow:0 0 16px #ff5a4a66}
+.node.locked{border-color:#ffffff22;background:#1a1430;opacity:.6}.node.locked b{color:var(--mute)}
+.node.current{animation:nodepulse 1.2s ease-in-out infinite}@keyframes nodepulse{50%{box-shadow:0 0 0 10px #ffb43d33}}
+.node.sel{outline:3px solid var(--bone);outline-offset:3px}
+.node .ic{position:absolute;top:-20px;font-style:normal;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--danger);white-space:nowrap}
+.node .st{position:absolute;bottom:-16px;display:flex;gap:2px}.node .st i{width:12px;height:12px;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#ffffff26}.node .st i.on{background:var(--lamp-hi)}
+.mapcard{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.mapcard>div{display:grid;gap:2px;min-width:0}.mapcard b{font-family:var(--display);font-weight:400;font-size:20px}.mapcard span{font-size:12px;font-weight:800;color:var(--mute)}#mapLvNew{color:var(--lamp-hi)!important}
+.endtxt{margin:0;color:var(--mute);font-weight:700;max-width:40ch;line-height:1.4}
+.teaser{display:grid;gap:2px;padding:12px 18px;border:1px dashed var(--line);border-radius:14px}.teaser b{font-family:var(--display);font-weight:400;font-size:20px;color:var(--ice)}
+@media (prefers-reduced-motion:reduce){.node.current{animation:none}}
+@media (prefers-reduced-motion:reduce){.pop,#dodge,#bark.in,#count.hit,#count.up,.hand i,#titlecard.in,#bossbar.hit .bar,#resStars i.on{animation:none}}
+</style>
+
+<div id="stage"><canvas id="view" aria-label="Game view"></canvas></div>
+
+<div id="lobbyUI" hidden>
+  <div class="top"><span class="row"><span class="chip"><i class="coin"></i><span id="coins">0</span></span><span class="chip">★ <span id="lobbyStars">0</span></span></span>
+    <span class="row"><button class="ghost" id="muteBtn" type="button" aria-pressed="false">Sound on</button><button class="ghost" id="qBtn" type="button" aria-label="Graphics quality">HD</button></span></div>
+  <div class="title"><h1><span class="of">Heroes of</span>Lanternmoor</h1><div class="sub">Lantern Company holds the last road through Hollow Pass</div></div>
+  <div class="dock">
+    <div id="heroCards"></div>
+    <button class="big" id="playBtn" type="button">Battle</button>
+  </div>
+</div>
+
+<div id="runUI" hidden>
+  <div id="prog"></div>
+  <div class="top"><span class="chip" id="lvl">Level 1</span><span class="row"><span class="chip"><i class="coin"></i><span id="runCoins">0</span></span><button class="ghost" id="pauseBtn" type="button" aria-label="Pause">❚❚</button></span></div>
+  <div id="bossbar" hidden><div id="bossname">Bonecrusher</div><div class="bar"><div id="bossfill"></div><span class="ragemark" title="Rage at 40%"></span></div></div>
+  <div id="titlecard" hidden><span id="tcSub"></span><b id="tcName"></b></div>
+  <div id="count"><span id="countN">5</span></div>
+  <div id="hurt"></div>
+  <div id="pops"></div>
+  <div id="coach" hidden><div class="hand" aria-hidden="true"><i></i></div><div id="coachText"></div></div>
+  <div id="dodge" hidden>‹ Swipe to dodge ›</div>
+  <div id="bark" hidden><span class="face" aria-hidden="true">★</span><span><span id="barkName">Captain Vela</span><span id="barkText"></span></span></div>
+</div>
+
+<div id="pick" class="veil" hidden><div class="sheet"><span class="kick">Choose a skill</span><h2>The company rallies</h2><div id="pickCards"></div></div></div>
+<div id="pause" class="veil" hidden><div class="sheet"><h2>Paused</h2><div class="row"><button class="big" id="resumeBtn" type="button">Resume</button><button class="plain" id="restartBtn" type="button">Restart level</button><button class="plain" id="quitBtn" type="button">Back to camp</button></div></div></div>
+<div id="whiteflash"></div>
+<div id="map" hidden><div class="maphead"><button class="ghost" id="mapBack" type="button">‹ Camp</button><div><span class="kick">Chapter 1</span><h2>Hollow Pass</h2></div><span class="chip">★ <span id="mapStars">0</span></span></div>
+  <div id="mapRewards"></div>
+  <div class="mapscroll"><div id="mapPath"></div></div>
+  <div class="mapcard"><div><b id="mapLvName"></b><span id="mapLvNew"></span><span id="mapLvGiant"></span><span id="mapLvBest"></span></div><button class="big" id="mapFight" type="button">Fight</button></div></div>
+<div id="chapterEnd" class="veil" hidden><div class="sheet"><span class="kick">Chapter 1 complete</span><h2>Hollow Pass is clear</h2><p class="endtxt">The Barrow King has fallen and Lantern Company holds the pass. Replay any level to collect more stars.</p><span class="chip" id="endStars"></span>
+  <div class="teaser"><span class="kick">Coming soon</span><b>Chapter 2 · Frostbite Pass</b></div><button class="big" id="endCamp" type="button">Back to camp</button></div></div>
+<div id="result" class="veil" hidden><div class="sheet"><span class="kick" id="resKick"></span><h2 id="resTitle"></h2><div id="resStars"></div><div id="resSurvive" hidden><span>Squad survived</span><div class="bar"><div id="resSurviveBar"></div></div><b id="resSurviveTxt"></b></div><div id="resStats"></div>
+  <div class="row"><button class="big" id="resNext" type="button">Next level</button><button class="plain" id="resLobby" type="button">Camp</button></div></div></div>
+
+<div id="loading"><div><h1><span class="of">Heroes of</span>Lanternmoor</h1><div id="loadText">Loading…</div><div class="lbar"><div id="loadBar"></div></div></div></div>
+<div id="fps"></div>
+<script src="app.js"></script>
+
+</html>
