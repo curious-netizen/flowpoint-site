@@ -2411,8 +2411,8 @@ function buildRealLibrary() {
     // (only light paints: the model's paint mask is patchy, which shows up badly in dark colours)
     LIB.suv = ['#f3f3f1', '#f3f3f1', '#e6e6e2', '#c8cbd0', '#b9bdc2'].map((c) => realCar('fortuner', c));
   }
-  // the luxury saloon (Ajit's S-Class): black or silver, about 1 car in 15 (see pickType)
-  if (REAL.merc) LIB.lux = [realLux('#121315'), realLux('#121315'), realLux('#b3b7bb'), realLux('#9a9fa4')];
+  // the luxury saloon (Ajit's S-Class): black only (the silver repaint didn't look right), about 1 car in 15 (see pickType)
+  if (REAL.merc) LIB.lux = [realLux('#121315')];
   LIB.amb = [realAmb('#f4f4f0'), realAmb('#f4f4f0', { taxi: true }), realAmb('#f4f4f0'), realAmb('#e9e1c8'), realAmb('#1c1c1e'), realAmb('#8c9196'), realAmb('#244b2c')];
   LIB.bus = BUS_LIVERY.map(realBus).concat([realBus({ lower: '#c4161c', upper: '#c4161c', board: 'bus2' })]);
   // Ajit's Meshy BMTC ordinary and tourist coach (they replaced third-party models of unclear origin)
@@ -5910,7 +5910,8 @@ function toast(html, kind = 'info') {
 }
 let flashT = 0, vigT = 0;
 function flashCamera() { flashT = 0.35; }
-function flashDamage() { vigT = 0.5; if (navigator.vibrate) try { navigator.vibrate(60); } catch (e) { /* not allowed */ } }
+const HAP = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;   // (the Android app)
+function flashDamage() { vigT = 0.5; try { if (HAP) HAP.impact({ style: 'MEDIUM' }); else if (navigator.vibrate) navigator.vibrate(60); } catch (e) { /* not allowed */ } }
 function updateFX(dt) {
   if (flashT > 0) { flashT -= dt; H.flash.style.opacity = String(Math.max(0, flashT / 0.35) * 0.85); } else if (H.flash.style.opacity !== '0') H.flash.style.opacity = '0';
   if (vigT > 0) { vigT -= dt; H.vig.style.opacity = String(Math.max(0, vigT / 0.5)); } else if (H.vig.style.opacity !== '0') H.vig.style.opacity = '0';
@@ -6395,6 +6396,19 @@ function wire() {
   holdButton($('#b-brake'), () => { input.brake = true; $('#b-brake').classList.add('on'); }, () => { input.brake = false; $('#b-brake').classList.remove('on'); });
   holdButton($('#b-horn'), () => honk(true), () => honk(false));
   document.addEventListener('visibilitychange', () => { if (document.hidden && player.active && !game.ended && !paused) togglePause(true); });
+  // the Android app: the back button pauses a run (and from the pause menu goes back to the title), closes the
+  // credits or the report, and on the title leaves the game in the background; sound stops while the app is away
+  const CapApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (CapApp) {
+    CapApp.addListener('backButton', () => {
+      if (!$('#s-credits').hidden) { showCredits(false); return; }
+      if (player.active && !game.ended) { if (paused) goTitle(true); else togglePause(true); return; }
+      if (!$('#s-end').hidden) { goTitle(true); return; }
+      CapApp.minimizeApp();
+    });
+    CapApp.addListener('pause', () => { if (player.active && !game.ended && !paused) togglePause(true); SND.setMuted(true); });
+    CapApp.addListener('resume', () => SND.setMuted(settings.muted));
+  }
 }
 
 async function boot() {
